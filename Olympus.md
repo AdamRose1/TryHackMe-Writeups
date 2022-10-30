@@ -184,4 +184,4 @@ Ssh into target as root:\
 ssh -i id_rsa_roottarget root@10.10.105.247
 
 Search for the final flag with command: \
-grep -riI "flag{" 2>/dev/null           →       Found the flag in etc/ssl/private/.b0nus.fl4g
+grep -riI "flag{" / 2>/dev/null           →       Found the flag in etc/ssl/private/.b0nus.fl4g
