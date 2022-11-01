@@ -1,4 +1,4 @@
-Target: Island Orchestration
+**Target: 10.10.92.50 Island Orchestration**
 
 nmap -Pn 10.10.92.50  -p- |grep open|awk -F '/' '{print $1}'|tr '\n' ','\
 Output shows open ports: 22,80,8443
@@ -45,6 +45,4 @@ Output on that command finds a flag:
 Decode the flag with command:\
 echo -n "ZmxhZ3swOGJlZDlmYzBiYzZkOTRmZmY5ZTUxZjI5MTU3Nzg0MX0="|base64 -d
 
-TryHackMe made this machine as a find the flag machine.  Not getting a shell and escalating to root.  
-The base64 decode shows the flag.
-
+That's all for this machine.  TryHackMe made this as a flag machine, not getting a shell and escalating to root type.  
