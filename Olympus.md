@@ -1,4 +1,4 @@
-Target: 10.10.105.247   Olympus
+**Target: 10.10.105.247   Olympus**
 
 **Initial Access:**\
 nmap -Pn  10.10.105.247 --min-rate=5000 -p-|grep open|awk -F '/' '{print $1}'|tr '\n' ','\
