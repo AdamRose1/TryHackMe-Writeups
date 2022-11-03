@@ -13,11 +13,9 @@ Navigate to port 5000. The page shows:
 
 ![image](https://user-images.githubusercontent.com/93153300/199852934-8ef3de7a-4554-4f80-a3c1-c5e109eda25d.png)
 
-It’s a pug template engine that converts pug to html.  This seems like we can run code.  Google search ‘pug template reverse shell’.  Found a few pages that showed how to get a reverse shell with a pug template using ssti (server side template injection).   Let’s open one of the pages (https://gist.githubusercontent.com/Jasemalsadi/2862619f21453e0a6ba2462f9613b49f/raw/e52a952130d102ef48b5146779249cceb3b5bf28/ssti_rev_shell_pug_node_js), it shows:
+It’s a pug template engine that converts pug to html.  We can enter anything we want on this page, and when we click ‘convert to html’ it shows us the input we entered in html.  So we have user input, our user input is being returned back to us, and we know this is a pug template.  This is an ideal situation to test for server site template injection.  
 
-![image](https://user-images.githubusercontent.com/93153300/199852982-cd099795-7bd9-4491-80fe-8e07d2607b63.png)
-
-At the top of this page it shows a simple proof of concept for ssti, ```#{3*3}```.  Remove the current script on the pug template, and instead insert ```#{3*3}```.  If it’s vulnerable to ssti then it should run the command 3*3 and return a value of 9.  
+Google search pug ssti and you’ll find plenty of payloads.  A simple proof of concept for ssti is```#{3*3}```.  Remove the current script on the pug template, and instead insert ```#{3*3}```.  If it’s vulnerable to ssti then it should run the command 3*3 and return a value of 9.  
 
 ![image](https://user-images.githubusercontent.com/93153300/199853025-3258c492-b9e3-418c-aaeb-026e7900c417.png)
 
@@ -25,7 +23,11 @@ Click on convert to html at the bottom:
 
 ![image](https://user-images.githubusercontent.com/93153300/199853041-d3074e29-2e15-4bbc-8d8e-f0bf63651572.png)
  
-We got a return of 9, now we know it’s vulnerable to ssti.  Use this to get a reverse shell.  Here are the steps to get a reverse shell with this ssti:  \
+We got a return of 9, now we know it’s vulnerable to ssti.  Use this to get a reverse shell.  Google search ‘pug template reverse shell’.  Found a few pages that showed how to get a reverse shell with a pug template using ssti (server side template injection).   Let’s open one of the pages (https://gist.githubusercontent.com/Jasemalsadi/2862619f21453e0a6ba2462f9613b49f/raw/e52a952130d102ef48b5146779249cceb3b5bf28/ssti_rev_shell_pug_node_js), it shows:
+
+![image](https://user-images.githubusercontent.com/93153300/199852982-cd099795-7bd9-4491-80fe-8e07d2607b63.png)
+
+Using this pug ssti reverse shell script, here are the steps to get a reverse shell with this ssti:  \
 Step 1: Looking back at the reverse shell script we opened above, towards the bottom of this script it shows a coded payload.  It look likes base64, decode the payload: 
 
 ![image](https://user-images.githubusercontent.com/93153300/199853066-a3c9193d-f697-47b5-9140-26ab69f77c8b.png)
