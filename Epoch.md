@@ -17,10 +17,10 @@ Let’s test the converter.  Put a random word in:
 
 ![image](https://user-images.githubusercontent.com/93153300/198738176-59b4db1d-70e0-473a-b704-a3aced5d3dd7.png)
  
-We see in the url that we are taken to a directory /?epoch=\
+We see in the url that we are taken to a directory /?epoch=
 
 Testing for command injection let’s try:   blob;id;
-Found command injection, the command id ran:
+Found command injection, the command 'id' ran:
 
 ![image](https://user-images.githubusercontent.com/93153300/198738230-92e20d5b-4882-4560-9602-01fbfe92a571.png)
  
@@ -34,4 +34,4 @@ Upon checking environment variables we find the flag:
 ![image](https://user-images.githubusercontent.com/93153300/198738301-c47df8d5-9797-453f-82ff-b3984c3b6021.png)
  
 
-This machine only had one flag, and was not made for privilege escalation to get root.
+This machine only had one flag, and was not made for privilege escalation to get root. So our work here is done.
