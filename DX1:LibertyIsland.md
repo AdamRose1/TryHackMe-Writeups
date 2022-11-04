@@ -1,5 +1,4 @@
 **Target: 10.10.215.92 DX1-Liberty Island**
-(Machine was restarted in the middle of my work, so the target ip address for part of my work changed to 10.10.51.25)
 
 **Initial Access:**\
 nmap -Pn  10.10.215.92  -p- --min-rate=5000 |grep open|awk -F '/''{print $1}'|tr '\n' ','	\
@@ -11,9 +10,9 @@ Output shows:
 
 ![image](https://user-images.githubusercontent.com/93153300/200068459-d6266a1c-d2d0-4f77-a3f5-6ba3f6eb276e.png)
 
-Navigate to port 80:
+Navigating to port 80 shows: 
 
-![image](https://user-images.githubusercontent.com/93153300/200068681-74dd63f8-a48c-4087-9607-ba41151fd1b8.png)
+![image](https://user-images.githubusercontent.com/93153300/200086307-60d848fc-65da-47b5-bdae-b0957e2e0b09.png)
 
 There’s a link on the bottom called ‘War in Cyberspace’. Clicking on that link takes us to a directory  /badactors.html.  \
 This directory shows a list that seems like it may be usernames or passwords.  Not much more to do here, so let's brute force directories on port 80:
