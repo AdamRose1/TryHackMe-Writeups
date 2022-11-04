@@ -21,18 +21,22 @@ Direcotry /?page=  is sometimes vulnerable to lfi.  Trying a proof of concept wi
 
 ![image](https://user-images.githubusercontent.com/93153300/198814603-6e3d0d84-649a-4019-9e27-4779475e2f7b.png)
  
-Checking for different files with the lfi, I don’t find anything of interest.  So let’s check port 8443.  Navigating to https://10.10.92.50:8443, and viewing the certificate of the page, it shows:
+Checking for different files with the lfi, we don’t find anything of interest.
+
+Nmap showed port 8443 is running kubernetes.  Let's look into port 8443.  Navigating to https://10.10.92.50:8443, and viewing the certificate to the site shows:
 
 ![image](https://user-images.githubusercontent.com/93153300/198814606-804241d1-9149-485b-b060-daf452a98744.png)
 
-This reminds me in our nmap at the beginning, it showed port 8443 is using kubernetes.  This certificate indicates the target is using minikube. Minikube is a lightweight kubernetes.  Now that we know target is running minikube, let’s try and find the token it uses with our lfi exploit.  Google search for ‘where is kubernetes token directory’.  The google search shows it’s located in /var/run/secrets/kubernetes.io/serviceaccount/token\
+This certificate indicates the target is using minikube. Minikube is a lightweight kubernetes.  Now that we know target is running minikube, let’s try and find the token it uses with our lfi exploit.  Google search for ‘where is kubernetes token directory’.  The google search shows it’s located in /var/run/secrets/kubernetes.io/serviceaccount/token
 
-Let’s try to get the token with the lfi.  http://10.10.92.50/?page=/var/run/secrets/kubernetes.io/serviceaccount/token\
+Let’s try to get the token with the lfi:\
+http://10.10.92.50/?page=/var/run/secrets/kubernetes.io/serviceaccount/token \
 We found the token:
 
 ![image](https://user-images.githubusercontent.com/93153300/198814613-c44db89f-3e5e-4404-aa16-c51c6668d516.png)
 
-Now that we have the token we can run commands from the command line with kubectl.  The command is made up of kubectl <server name> <token>  <bypass verifying the cert>  <action>. \
+Now that we have the token we can run commands from the command line with kubectl. The command is made up of:\
+```kubectl <server name> <token>  <bypass verifying the cert>  <action>```
 
 Check for hidden secrets using kubectl with command: 
 
@@ -45,4 +49,4 @@ Output on that command finds a flag:
 Decode the flag with command:\
 echo -n "ZmxhZ3swOGJlZDlmYzBiYzZkOTRmZmY5ZTUxZjI5MTU3Nzg0MX0="|base64 -d
 
-That's all for this machine.  TryHackMe made this as a flag machine, not getting a shell and escalating to root type.  
+This machine only has one flag, and was not made for privilege escalation to get root. So that's all for this machine.
