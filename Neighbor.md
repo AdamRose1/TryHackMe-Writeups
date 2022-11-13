@@ -29,7 +29,7 @@ Visiting http://10.10.10.201/db/users.sql downloads the file users.sql.  The fil
 ![image](https://user-images.githubusercontent.com/93153300/201550184-952d5bbb-4599-4294-8735-261a26f33f0f.png)
   
 We have 2 usernames and 2 hashed passwords.  Crack these hashes to get the password.  <br>
-Step 1: Place the 2 hashes in a file, we will call the file ‘hash’.  <br>
+Step 1: Place the 2 hashes in a file.  We will call the file ‘hash’.  <br>
 Step 2: Check the hash type being used with command ‘nth’: nth -f hash    → The hash type is md5 <br>
 Step 3: john hash --wordlist=/usr/share/wordlists/rockyou.txt --format=raw-md5 <br>
 John was able to crack the guest hash, not the admin hash.  The guest password is ‘guest’. 
