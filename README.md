@@ -1,1 +1,1 @@
-These are my writeups for TryHackMe machines
+These are my writeups for TryHackMe labs
