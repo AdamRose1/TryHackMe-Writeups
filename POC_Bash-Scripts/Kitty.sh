@@ -1,5 +1,5 @@
 #!/bin/bash
-# Created this to solve TryHackMe lab called 'Kitty'.  
+# Created this to solve the TryHackMe lab called 'Kitty'.  
 # This script perfroms blind boolean sql injection to dump the password for username kitty.  
 
 echo -n '' > dumped_data.txt  
